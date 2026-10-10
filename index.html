@@ -734,7 +734,6 @@ const URLS = {
 const S = { loc: null, locState: 'pending', kp: null, kpRaw: null, aw: null, wind: null, ov: null, wx: null, wxRaw: null, wxKey: null,
   t: {}, err: {}, busy: false, inflight: 0, loaded: false, settled: false, lastKey: null, lastLevel: null, changedAt: null, selHour: null };
 const $ = id => document.getElementById(id);
-const useF = /^en-US/i.test(navigator.language || '');
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable or full */ } }
@@ -943,7 +942,7 @@ function fmtHour(d, tz) {
   catch (e) { return new Intl.DateTimeFormat([], o).format(d); }
 }
 const fmtKp = kp => { const r = Math.round(kp * 10) / 10; return Number.isInteger(r) ? String(r) : r.toFixed(1); };
-const fmtTemp = c => String(Math.round(useF ? c * 9 / 5 + 32 : c));
+const fmtTemp = c => String(Math.round(c));                     // always metric: °C
 const fmtCoord = (n, pos, neg) => Math.abs(n).toFixed(2) + '°' + (n >= 0 ? pos : neg);
 function setValue(id, text, unit) {
   const el = $(id); el.textContent = text;
@@ -1124,7 +1123,7 @@ function renderTiles(c) {
     if (p != null) bits.push('Rain ' + Math.round(p) + '%');
     if (WMO[w.code]) bits.push(WMO[w.code]);
     setFoot('cloud', bits.join(' · '), cl == null ? '' : cl < CFG.clearBelow ? 'good' : cl < CFG.cloudyFrom ? 'warn' : 'bad');
-    setValue('temp-val', w.temp != null ? fmtTemp(w.temp) : '–', w.temp != null ? (useF ? '°F' : '°C') : '');
+    setValue('temp-val', w.temp != null ? fmtTemp(w.temp) : '–', w.temp != null ? '°C' : '');
     setFoot('temp', w.feels != null ? 'Feels like ' + fmtTemp(w.feels) + '°' + (w.feels <= 3 ? ' · wrap up' : '') : '', w.feels != null && w.feels <= 3 ? 'warn' : '');
   } else {
     const msg = !c.loc ? 'Needs your location' : S.err.wx ? 'Weather unavailable' : 'Loading…';
