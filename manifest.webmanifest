@@ -1,0 +1,16 @@
+{
+  "name": "Aurora Borealis Viewer",
+  "short_name": "Aurora",
+  "description": "Quick-glance aurora dashboard: should you go and look tonight?",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0C1624",
+  "theme_color": "#0C1624",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
