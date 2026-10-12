@@ -138,6 +138,15 @@ test('Tonight lines up with the hourly weather where clocks are 30 or 45 minutes
   }
 });
 
+test('only the next hour or so counts as live; later hours are NOAA’s forecast', () => {
+  const now = ms('2026-10-12T21:30:00Z'), series = kpSeries(() => 5, now - 6 * H, now + 24 * H);
+  const p = plan(now, ...INVERNESS, { series, nowTier: 3 });
+  assert.deepEqual(p.cols.slice(0, 3).map(c => c.live), [true, true, false]);
+  assert.ok(p.cols.slice(2).every(c => !c.live));
+  const noLive = plan(now, ...INVERNESS, { series, nowTier: null });
+  assert.ok(noLive.cols.every(c => !c.live), 'without live data every hour is a forecast');
+});
+
 test('a bright Moon trims the chance, and the summary says so', () => {
   const now = ms('2026-10-25T20:00:00Z'), series = kpSeries(() => 5, now - 6 * H, now + 24 * H);
   const base = { nowTier: 3, series, moonIllum: 1 };

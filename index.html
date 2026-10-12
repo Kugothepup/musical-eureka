@@ -213,6 +213,9 @@ h1{margin:0;font-size:clamp(27px,8.4vw,35px);line-height:1.1;font-weight:600;let
 .tcol[aria-pressed=true]{outline:2px solid #fff;outline-offset:1px}
 .tcol:focus-visible{outline:2px solid var(--info)}
 .tcol i{display:block;min-height:3px;height:calc(var(--h) * 1%);border-radius:4px;background:var(--c)}
+.tcol i.fc,.k.fc{background:repeating-linear-gradient(135deg,rgba(12,22,36,.5) 0 2px,transparent 2px 6px),var(--c)}
+.tn-bars{position:relative}
+.tn-split{position:absolute;top:-6px;bottom:0;left:calc((100% + 3px) * var(--k) / var(--n) - 2px);border-left:1px dashed rgba(255,255,255,.45);pointer-events:none}
 .t0{--c:#2F4A6B}.t1{--c:#3F7088}.t2{--c:#4DB79A}.t3{--c:#7AFD89}.t4{--c:linear-gradient(to top,#7AFD89 0 35%,#F190D9)}
 .tn-sky{height:6px;margin-top:6px;border-radius:3px;overflow:hidden}
 .sk{display:block;margin:0 -1.5px;background:var(--c)}
@@ -353,7 +356,8 @@ footer p{margin:0 0 6px}
     <div class="tn-sky" id="tn-sky" aria-hidden="true"></div>
     <div class="hlabels" id="tn-labels" aria-hidden="true"></div>
     <p class="tn-detail" id="tn-detail" aria-live="polite">Tap a bar to see that hour.</p>
-    <p class="legend">Taller bars mean a better chance: each one weighs the aurora forecast against darkness, cloud and moonlight. The colour shows how active the aurora is.</p>
+    <p class="legend">Taller bars mean a better chance: each one weighs the aurora forecast against darkness, cloud and moonlight. The colour shows how active the aurora is. Solid bars come from live measurements; striped bars from NOAA’s forecast, which can be hours out.</p>
+    <div class="keys" aria-hidden="true"><span><i class="k t3"></i>Live</span><span><i class="k t3 fc"></i>NOAA forecast</span></div>
     <div class="keys" aria-hidden="true"><span><i class="k t1"></i>Slim</span><span><i class="k t2"></i>Possible</span><span><i class="k t3"></i>Likely</span><span><i class="k t4"></i>Strong</span></div>
     <div class="keys" aria-hidden="true"><span><i class="k sky-day"></i>Day</span><span><i class="k sky-twi"></i>Twilight</span><span><i class="k sky-dark"></i>Dark</span><span><i class="k sky-moon"></i>Moonlit</span></div>
   </article>
@@ -761,12 +765,12 @@ function planTonight(o) {
   for (let i = 0; i < o.n; i++) {
     const t = start + i * H, mid = t + H / 2, w = byT.get(t) || null;
     const alt = o.altAt(mid);
-    let tier = null;
-    if (mid - o.nowMs < 1.5 * H && o.nowTier != null) tier = o.nowTier;      // the next ~hour: use the live answer
+    let tier = null, live = false;                                // live: from measurements now, not a forecast
+    if (mid - o.nowMs < 1.5 * H && o.nowTier != null) { tier = o.nowTier; live = true; }   // the next ~hour: use the live answer
     else {
       const b = kpBinAt(o.series, mid);
       if (b && o.need != null) tier = Math.max(0, Math.min(4, tierFromKp(b.kp, o.need) + (mid - o.nowMs < 6 * H ? offset : 0)));
-      else if (o.nowTier != null && mid - o.nowMs < 3 * H) tier = o.nowTier;
+      else if (o.nowTier != null && mid - o.nowMs < 3 * H) tier = o.nowTier;               // no Kp forecast: assume it holds
     }
     const dark = alt <= CFG.darkSunAlt ? 1 : alt <= -6 ? 0.5 : 0;
     const cloud = w && w.cloud != null ? w.cloud : null;
@@ -774,7 +778,7 @@ function planTonight(o) {
     const moonUp = !!o.moonAltAt && o.moonAltAt(mid) > MOON_UP;
     const moon = moonUp ? 1 - CFG.moonDim * (o.moonIllum || 0) : 1;   // moonlight washes out the fainter aurora
     const score = tier == null ? null : [0, 0.15, 0.4, 0.75, 1][tier] * dark * clear * moon;
-    cols.push({ t: new Date(t), alt, tier, cloud, cloudTotal: w ? w.cloudTotal : null, pop: w ? w.pop : null, dark, moonUp, score });
+    cols.push({ t: new Date(t), alt, tier, live, cloud, cloudTotal: w ? w.cloudTotal : null, pop: w ? w.pop : null, dark, moonUp, score });
   }
   const topTier = list => list.reduce((m, c) => c.tier != null && c.tier > m ? c.tier : m, -1);
   let bi = -1;
@@ -1269,13 +1273,13 @@ function renderTonight(c) {
   const describe = col => {
     const cloud = col.cloud == null ? 'cloud unknown'
       : thinCloud(col.cloud, col.cloudTotal) ? Math.round(col.cloudTotal) + '% cloud, mostly thin' : Math.round(col.cloud) + '% cloud';
-    return fmtHour(col.t, c.tz) + ':00 · ' + (col.tier == null ? 'no aurora forecast' : TIER_PHRASE[col.tier].toLowerCase()) + ' · ' + cloud +
+    return fmtHour(col.t, c.tz) + ':00 · ' + (col.tier == null ? 'no aurora forecast' : TIER_PHRASE[col.tier].toLowerCase() + (col.live ? ' (live)' : ' (forecast)')) + ' · ' + cloud +
       ' · ' + ({ dark: 'dark', moon: 'dark, bright Moon up', twi: 'twilight', day: 'daylight' })[light(col)];
   };
 
   // Rebuild the bars only when the plan changes, so a minute's tick doesn't move keyboard focus or flicker.
   const sig = JSON.stringify([c.tz, p.best && [p.best.a, p.best.b, p.best.score >= 0.3], p.cols.map(col =>
-    [col.t.getTime(), col.score == null ? -1 : Math.round(col.score * 100), col.tier, col.cloud, col.cloudTotal, light(col)])]);
+    [col.t.getTime(), col.score == null ? -1 : Math.round(col.score * 100), col.tier, col.live, col.cloud, col.cloudTotal, light(col)])]);
   if (box.dataset.sig !== sig) {
     const had = box.contains(document.activeElement) ? document.activeElement.dataset.t : null;
     box.dataset.sig = sig;
@@ -1292,7 +1296,7 @@ function renderTonight(c) {
       b.type = 'button'; b.className = 'tcol'; b.dataset.t = String(col.t.getTime());
       if (col.tier != null) {
         const bar = document.createElement('i');
-        bar.className = 't' + col.tier;
+        bar.className = 't' + col.tier + (col.live ? '' : ' fc');     // striped: NOAA's forecast rather than live measurements
         bar.style.setProperty('--h', String(Math.max(4, Math.round((col.score || 0) * 100))));
         b.appendChild(bar);
       }
@@ -1310,10 +1314,17 @@ function renderTonight(c) {
     end.className = 'end';
     end.textContent = fmtHour(new Date(p.cols[p.cols.length - 1].t.getTime() + 3600e3), c.tz);
     lab.appendChild(end);
+    const nLive = p.cols.findIndex(col => !col.live);              // a dashed line where live measurements give way to the forecast
+    if (nLive > 0) {
+      const split = document.createElement('i');
+      split.className = 'tn-split';
+      split.style.setProperty('--k', String(nLive));
+      box.appendChild(split);
+    }
     if (had) { const f = box.querySelector('[data-t="' + had + '"]'); if (f) f.focus(); }
   }
   let selCol = null;
-  [...box.children].forEach((b, i) => {
+  box.querySelectorAll('.tcol').forEach((b, i) => {
     const on = S.selHour === p.cols[i].t.getTime();
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
     if (on) selCol = p.cols[i];
