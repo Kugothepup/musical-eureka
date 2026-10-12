@@ -217,7 +217,8 @@ h1{margin:0;font-size:clamp(27px,8.4vw,35px);line-height:1.1;font-weight:600;let
 .tn-sky{height:6px;margin-top:6px;border-radius:3px;overflow:hidden}
 .sk{display:block;margin:0 -1.5px;background:var(--c)}
 .sky-day{--c:#C8A55A}.sky-twi{--c:#46619E}.sky-dark{--c:#070C16}.sky-moon{--c:#5A6880}
-.hlabels{margin-top:6px;font-size:10.5px;color:var(--faint);text-align:center}
+.hlabels{position:relative;margin-top:6px;font-size:10.5px;color:var(--faint);text-align:center}
+.hlabels .end{position:absolute;top:0;right:0}
 .hlabels span{overflow:visible;white-space:nowrap}
 .hlabels span:first-child{color:var(--text);font-weight:500}
 .tn-detail{margin:10px 0 0;font-size:12.5px;min-height:18px;color:var(--text)}
@@ -344,7 +345,7 @@ footer p{margin:0 0 6px}
 
 <main class="cards">
   <article class="card wide" id="card-tonight" hidden>
-    <div class="card-head"><h2>Tonight</h2><span class="muted small" id="tn-range"></span></div>
+    <div class="card-head"><h2>Tonight</h2></div>
     <p class="tn-title" id="tn-title">–</p>
     <p class="tn-sub" id="tn-sub"></p>
     <div class="tn-best" id="tn-best" aria-hidden="true"></div>
@@ -1264,7 +1265,6 @@ function renderTonight(c) {
   const sum = tonightSummary(p, c.fmt, c.nowMs);
   setText('tn-title', sum.title);
   setText('tn-sub', sum.sub + (p.hasCloud ? '' : ' No cloud forecast available.'));
-  setText('tn-range', fmtHour(p.cols[0].t, c.tz) + ':00 – ' + fmtHour(new Date(p.cols[p.cols.length - 1].t.getTime() + 3600e3), c.tz) + ':00');
   const light = col => col.dark === 1 ? (col.moonUp && p.moonIllum >= 0.25 ? 'moon' : 'dark') : col.dark ? 'twi' : 'day';
   const describe = col => {
     const cloud = col.cloud == null ? 'cloud unknown'
@@ -1303,9 +1303,13 @@ function renderTonight(c) {
       k.className = 'sk sky-' + light(col);
       sky.appendChild(k);
       const sp = document.createElement('span');
-      sp.textContent = i === 0 ? 'Now' : i % 3 === 0 ? fmtHour(col.t, c.tz) : '';
+      sp.textContent = i === 0 ? 'Now' : i % 3 === 0 && i <= p.cols.length - 3 ? fmtHour(col.t, c.tz) : '';
       lab.appendChild(sp);
     });
+    const end = document.createElement('span');                   // where the chart stops, at its right-hand edge
+    end.className = 'end';
+    end.textContent = fmtHour(new Date(p.cols[p.cols.length - 1].t.getTime() + 3600e3), c.tz);
+    lab.appendChild(end);
     if (had) { const f = box.querySelector('[data-t="' + had + '"]'); if (f) f.focus(); }
   }
   let selCol = null;
