@@ -51,6 +51,9 @@ body{
   font-variant-numeric:tabular-nums;
 }
 [hidden]{display:none!important}
+/* even line breaks: no lone word left on a line of its own (ignored by browsers that don't support it) */
+p{text-wrap:pretty}
+.sub,.tip span,.tn-sub,.tn-detail,.foot span,.chip .v,.ev-v{text-wrap:balance}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--info);outline-offset:2px}
@@ -108,6 +111,15 @@ html.night .sky-day{--c:#8C8C8C}html.night .sky-twi{--c:#5C5C5C}html.night .sky-
   opacity:calc(var(--aurora) * .6);animation:sway 22s ease-in-out -6s infinite alternate-reverse}
 .curtain.c{background:repeating-linear-gradient(90deg,transparent 0 12%,rgba(241,144,217,.9) 17% 22%,transparent 30% 38%);
   opacity:calc(var(--pink) * var(--aurora) * .9);animation:sway 19s ease-in-out -3s infinite alternate}
+/* The sky follows the Sun: blue by day, a glow at dusk and dawn, stars only once it's properly dark */
+.hero[data-sky=day] .sky{background:linear-gradient(180deg,#1f4a78 0%,#356595 55%,#5683b0 100%)}
+.hero[data-sky=civil] .sky{background:radial-gradient(150% 95% at 50% 112%,#f0975f 0%,#c0657a 24%,#5a4a80 46%,#1f2a52 72%,#101b36 100%)}
+.hero[data-sky=day]::after,.hero[data-sky=civil]::after{background:linear-gradient(180deg,rgba(6,12,22,0) 0%,rgba(6,12,22,.12) 55%,rgba(6,12,22,.3) 100%)}
+.hero[data-sky=nautical] .sky{background:radial-gradient(130% 95% at 50% 125%,#2c5a7c 0%,#15304f 50%,#09162a 100%)}
+.hero[data-sky=day] .stars{opacity:0;animation:none}
+.hero[data-sky=civil] .stars{opacity:.2;animation:none}
+.hero[data-sky=nautical] .stars{opacity:.5;animation:none}
+.hero[data-sky=day] .curtain,.hero[data-sky=civil] .curtain{opacity:0}
 .hero::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
   background:linear-gradient(180deg,rgba(6,12,22,0) 0%,rgba(6,12,22,.35) 55%,rgba(6,12,22,.72) 100%)}
 @keyframes sway{from{transform:translateX(-4%) skewX(-5deg) scaleY(.88)}to{transform:translateX(4%) skewX(5deg) scaleY(1.08)}}
@@ -247,7 +259,10 @@ details.why[open] summary::after{transform:rotate(225deg);margin-top:4px}
 .bar.now{outline:2px solid #fff;outline-offset:1px}
 .bar.empty{background:transparent;min-height:0}
 .need{position:absolute;left:0;right:0;bottom:calc(var(--need) * 100%);border-top:1px dashed rgba(255,255,255,.6);pointer-events:none}
-.need span{position:absolute;right:0;bottom:3px;font-size:10.5px;line-height:1.4;padding:0 5px;border-radius:5px;background:rgba(12,22,36,.82);color:#fff}
+/* the "Kp you need here" label sits in a gutter at the end of its line, clear of the bars */
+.kp-chart.has-need,.kp-chart.has-need + .kp-axis{padding-right:42px}
+.need span{position:absolute;right:0;top:0;transform:translateY(-50%);font-size:10.5px;font-weight:500;line-height:1.5;padding:0 6px;
+  border-radius:5px;background:rgba(255,255,255,.12);color:var(--text);white-space:nowrap}
 .kp-axis{display:flex;justify-content:space-between;margin-top:6px;font-size:10.5px;color:var(--faint)}
 .l0{--c:#3F5E83}.l1{--c:#4F95A8}.l2{--c:#7AFD89}.l3{--c:#F190D9}
 
@@ -273,7 +288,7 @@ footer p{margin:0 0 6px}
 
 <div class="ptr" id="ptr" aria-hidden="true">Pull to refresh</div>
 
-<header class="hero" id="hero" data-level="unknown">
+<header class="hero" id="hero" data-level="unknown" data-sky="night">
   <div class="sky" aria-hidden="true">
     <div class="stars"></div>
     <div class="curtain a"></div>
@@ -1098,7 +1113,12 @@ const fmtKp = kp => { const r = Math.round(kp * 10) / 10; return Number.isIntege
 const fmtTemp = c => String(Math.round(c));                     // always metric: °C
 const fmtCoord = (n, pos, neg, dp) => Math.abs(n).toFixed(dp == null ? 2 : dp) + '°' + (n >= 0 ? pos : neg);
 // Only touch the page when text really changes, so screen readers don't re-announce the same words every minute.
-function setText(el, text) { if (typeof el === 'string') el = $(el); if (el.textContent !== text) el.textContent = text; }
+// A non-breaking space keeps each " · " separator on the line it ends, so no line starts with a dot.
+function setText(el, text) {
+  if (typeof el === 'string') el = $(el);
+  text = text.replace(/ · /g, ' · ');
+  if (el.textContent !== text) el.textContent = text;
+}
 function setValue(id, text, unit) {
   const el = $(id), key = text + '|' + (unit || '');
   if (el.dataset.v === key) return;
@@ -1174,6 +1194,8 @@ function renderHero(c) {
     moonBright: !!(c.moonEv && c.moonEv.up && c.moon.illum >= 0.6)
   });
   hero.dataset.level = v.level;
+  const sun = c.dark ? c.dark.alt : null;                         // the sky behind the headline follows the Sun
+  hero.dataset.sky = sun == null || sun <= CFG.darkSunAlt ? 'night' : sun <= -6 ? 'nautical' : sun <= -0.8 ? 'civil' : 'day';
   setText('hero-title', v.title);
   setText('hero-sub', v.sub);
   setText('hero-eyebrow', ({ go: 'Go now', maybe: 'Maybe', wait: 'Not yet', no: 'Unlikely', unknown: 'Aurora outlook' })[v.level]);
@@ -1315,7 +1337,7 @@ function renderTiles(c) {
     else if (WMO[w.code]) bits.push(WMO[w.code]);
     setFoot('cloud', bits.join(' · '), cl == null ? '' : cl < CFG.clearBelow ? 'good' : cl < CFG.cloudyFrom ? 'warn' : 'bad');
     setValue('temp-val', w.temp != null ? fmtTemp(w.temp) : '–', w.temp != null ? '°C' : '');
-    setFoot('temp', w.feels != null ? 'Feels like ' + fmtTemp(w.feels) + '°' + (w.feels <= 3 ? ' · wrap up' : '') : '', w.feels != null && w.feels <= 3 ? 'warn' : '');
+    setFoot('temp', w.feels != null ? 'Feels like ' + fmtTemp(w.feels) + '°' + (w.feels <= 3 ? ' · wrap up' : '') : '', w.feels != null && w.feels <= 3 ? 'warn' : '');
   } else {
     const msg = !c.loc ? 'Needs your location' : S.err.wx ? 'Weather unavailable' : 'Loading…';
     ['cloud', 'temp'].forEach(k => { setValue(k + '-val', '–'); setFoot(k, msg, ''); });
@@ -1346,7 +1368,8 @@ function renderWhy(c) {
   }
   if (c.kv) sum.push('Kp ' + fmtKp(c.kv.cur.kp));
   $('kp-x').textContent = 'Kp runs from 0 to 9 and measures how disturbed Earth’s magnetic field is, in 3-hour blocks.' +
-    (c.loc ? ' From here you usually need about Kp ' + Math.min(9, Math.round(c.need)) + '.' : '') + ' Hatched bars are forecasts.';
+    (!c.loc ? '' : c.need >= 1.5 ? ' The dashed line marks what you usually need from here: about Kp ' + Math.min(9, Math.round(c.need)) + '.'
+      : ' From here you usually need about Kp ' + Math.min(9, Math.round(c.need)) + '.') + ' Hatched bars are forecasts.';
 
   // AuroraWatch UK
   const awBox = $('ev-aw');
@@ -1384,7 +1407,7 @@ function renderWhy(c) {
 
 function renderKp(c) {
   const kv = c.kv, chart = $('kp-chart'), badge = $('kp-badge');
-  chart.textContent = '';
+  chart.textContent = ''; chart.classList.remove('has-need');
   if (!kv) {
     setValue('kp-now', '–'); badge.textContent = '–'; badge.dataset.g = '0';
     $('kp-line1').textContent = S.err.kp ? 'Couldn’t load Kp data.' : 'Waiting for data…'; $('kp-line2').textContent = '';
@@ -1408,10 +1431,11 @@ function renderKp(c) {
     chart.appendChild(b);
   });
   let alt = 'Kp from 24 hours ago to 24 hours ahead. Now ' + fmtKp(kp) + '.';
+  chart.classList.toggle('has-need', !!(c.loc && c.need >= 1.5));
   if (c.loc && c.need >= 1.5) {
     const n = document.createElement('div');
     n.className = 'need'; n.style.setProperty('--need', String(Math.min(c.need, 9) / 9));
-    const s = document.createElement('span'); s.textContent = 'visible here ≈ Kp ' + Math.min(9, Math.round(c.need));
+    const s = document.createElement('span'); s.textContent = 'Kp ' + Math.min(9, Math.round(c.need));
     n.appendChild(s); chart.appendChild(n);
     alt += ' Aurora is usually visible from your location at about Kp ' + Math.min(9, Math.round(c.need)) + ' or higher.';
   }
