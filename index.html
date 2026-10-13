@@ -46,7 +46,7 @@ html{-webkit-text-size-adjust:100%;background:var(--bg);overscroll-behavior-y:co
 body{
   position:relative;margin:0;color:var(--text);overscroll-behavior-y:contain;
   font-family:'Poppins',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 -.2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E"),linear-gradient(180deg,var(--bg2) 0,var(--bg) 520px) var(--bg);   /* a faint grain behind the tiles */
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .25 -.1'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E"),linear-gradient(180deg,var(--bg2) 0,var(--bg) 520px) var(--bg);   /* a faint grain behind the tiles */
   min-height:100vh;min-height:100dvh;-webkit-tap-highlight-color:transparent;
   font-variant-numeric:tabular-nums;
 }
@@ -64,6 +64,10 @@ button{cursor:pointer}
 html.night{background:#000;--text:#F2F2F2;--muted:#C8C8C8;--faint:#ADADAD;--good:#F2F2F2;--warn:#C4C4C4;--bad:#9A9A9A;--none:#7A7A7A;
   --info:#C4C4C4;--card:rgba(255,255,255,.07);--card-b:rgba(255,255,255,.13)}
 html.night body{background:#000}
+html.night .card{background:var(--card);box-shadow:none}              /* no grain at night, so no solid base or lit edge either */
+html.night .hero{--cloud-c:#1c232d;--haze-rgb:44,50,60}               /* the weather in the sky stays dark too */
+html.night .sky .precip{filter:brightness(.6)}
+html.night .banner-moon{filter:none;opacity:calc(var(--moon,0) * .5)}
 html.night body::after{content:"";position:absolute;inset:0;z-index:9999;pointer-events:none;background:#9c0000;mix-blend-mode:multiply}
 html.night .sky *{animation:none!important}
 html.night .curtain{filter:blur(18px)}
@@ -122,7 +126,8 @@ html.night .sky-day{--c:#8C8C8C}html.night .sky-twi{--c:#5C5C5C}html.night .sky-
 .hero[data-sky=day] .curtain,.hero[data-sky=civil] .curtain{opacity:0}
 
 /* Weather in the sky, from the live readings: --cloud, --haze and --moon (0-1) and data-precip are set by the script.
-   Only transform and opacity animate, so it stays cheap; night mode and reduced motion freeze it all. */
+   Only transform and opacity animate, and the slow cloud drift moves in whole-pixel steps so the page isn't redrawn every
+   frame for it; night mode and reduced motion freeze it all. */
 .hero{--cloud-c:#475670;--haze-rgb:132,145,165}
 .hero[data-sky=nautical]{--cloud-c:#4a5a74}
 .hero[data-sky=civil]{--cloud-c:#7c5f78;--haze-rgb:150,120,140}
@@ -131,27 +136,26 @@ html.night .sky-day{--c:#8C8C8C}html.night .sky-twi{--c:#5C5C5C}html.night .sky-
   filter:drop-shadow(0 0 calc(3px + var(--moon-glow,0) * 12px) rgba(226,236,250,.6))}
 .banner-moon circle{fill:rgba(170,188,212,.16)}
 .banner-moon path{fill:#EEF3FA}
-.aurora{position:absolute;inset:0}
+.aurora{position:absolute;inset:0;mix-blend-mode:screen}
 .hero[data-level=go] .aurora{animation:breathe 7s ease-in-out infinite alternate}
 .clouds{position:absolute;inset:0;transition:opacity 1.5s ease}
 .overcast{position:absolute;inset:0;background:var(--cloud-c);opacity:calc((var(--cloud,0) - .45) * 1.6);transition:opacity 1.5s ease}
-.bank{position:absolute;left:0;width:200%;opacity:calc(var(--cloud,0) * 1.8);transition:opacity 1.5s ease;will-change:transform;
+.bank{position:absolute;left:0;width:200%;opacity:calc(var(--cloud,0) * 1.8);transition:opacity 1.5s ease;
   background-size:50% 100%;background-repeat:repeat-x}
-.bank.b1{top:4%;height:52%;animation:drift 150s linear infinite;
+.bank.b1{top:4%;height:52%;animation:drift 150s steps(390) infinite;
   background-image:radial-gradient(20% 42% at 24% 55%,var(--cloud-c),transparent 72%),radial-gradient(13% 34% at 50% 42%,var(--cloud-c),transparent 72%),
     radial-gradient(17% 46% at 76% 60%,var(--cloud-c),transparent 72%)}
-.bank.b2{top:34%;height:58%;animation:drift 95s linear infinite;
+.bank.b2{top:34%;height:58%;animation:drift 95s steps(390) infinite;
   background-image:radial-gradient(16% 40% at 14% 50%,var(--cloud-c),transparent 72%),radial-gradient(22% 46% at 46% 58%,var(--cloud-c),transparent 72%),
     radial-gradient(12% 32% at 82% 44%,var(--cloud-c),transparent 72%)}
 .haze{position:absolute;inset:0;opacity:var(--haze,0);transition:opacity 1.5s ease;
   background:linear-gradient(to top,rgba(var(--haze-rgb),.85) 0%,rgba(var(--haze-rgb),.4) 55%,rgba(var(--haze-rgb),.18) 100%)}
-.precip{position:absolute;left:-10%;right:-140px;top:-480px;bottom:0;opacity:0;transition:opacity 1s ease;will-change:transform;background-repeat:repeat}
-.hero[data-precip=rain] .precip{opacity:.5;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg stroke='%23d6e4ff' stroke-opacity='.55' stroke-width='1.2' stroke-linecap='round'%3E%3Cpath d='M43.0 17.4l-3.2 12.9'/%3E%3Cpath d='M15.8 56.7l-2.8 11.2'/%3E%3Cpath d='M14.3 53.8l-2.3 9.2'/%3E%3Cpath d='M54.8 9.1l-2.4 9.5'/%3E%3Cpath d='M53.8 86.3l-2.4 9.7'/%3E%3Cpath d='M32.1 66.0l-3.7 14.7'/%3E%3Cpath d='M70.3 42.5l-3.7 14.9'/%3E%3Cpath d='M13.0 89.6l-2.7 10.7'/%3E%3Cpath d='M23.6 14.0l-2.7 10.9'/%3E%3Cpath d='M96.1 20.4l-3.1 12.5'/%3E%3Cpath d='M77.0 40.0l-3.1 12.3'/%3E%3Cpath d='M14.8 8.1l-2.6 10.2'/%3E%3Cpath d='M81.5 45.6l-2.7 10.9'/%3E%3Cpath d='M71.2 48.2l-2.7 10.8'/%3E%3C/g%3E%3C/svg%3E");animation:rain 2.2s linear infinite}
-.hero[data-precip=snow] .precip{opacity:.6;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='%23f2f6ff' fill-opacity='.8'%3E%3Ccircle cx='93.0' cy='82.3' r='1.3'/%3E%3Ccircle cx='68.3' cy='62.8' r='2.0'/%3E%3Ccircle cx='85.7' cy='36.2' r='2.1'/%3E%3Ccircle cx='17.2' cy='50.8' r='1.8'/%3E%3Ccircle cx='21.0' cy='58.8' r='1.0'/%3E%3Ccircle cx='78.8' cy='89.6' r='1.6'/%3E%3Ccircle cx='102.1' cy='39.1' r='1.8'/%3E%3Ccircle cx='70.6' cy='68.9' r='1.5'/%3E%3Ccircle cx='98.1' cy='109.8' r='1.5'/%3E%3Ccircle cx='78.4' cy='10.8' r='1.8'/%3E%3Ccircle cx='76.5' cy='115.2' r='1.9'/%3E%3Ccircle cx='35.9' cy='47.2' r='1.7'/%3E%3Ccircle cx='6.5' cy='55.7' r='1.2'/%3E%3Ccircle cx='17.1' cy='10.6' r='1.8'/%3E%3Ccircle cx='18.5' cy='31.7' r='1.4'/%3E%3Ccircle cx='101.6' cy='13.0' r='1.5'/%3E%3C/g%3E%3C/svg%3E");animation:snow 30s linear infinite}
-.hero[data-precip][data-plevel="2"] .precip{opacity:.75;animation-duration:1.8s}
-.hero[data-precip][data-plevel="3"] .precip{opacity:.95;animation-duration:1.4s}
-.hero[data-precip=snow][data-plevel="2"] .precip{animation-duration:24s}
-.hero[data-precip=snow][data-plevel="3"] .precip{animation-duration:18s}
+.precip{position:absolute;left:0;right:-120px;top:-480px;bottom:0;opacity:0;transition:opacity 1s ease;background-repeat:repeat}
+.hero[data-precip=rain] .precip{opacity:.3;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg stroke='%23d6e4ff' stroke-opacity='.55' stroke-width='1.2' stroke-linecap='round'%3E%3Cpath d='M43.0 17.4l-3.2 12.9'/%3E%3Cpath d='M15.8 56.7l-2.8 11.2'/%3E%3Cpath d='M14.3 53.8l-2.3 9.2'/%3E%3Cpath d='M54.8 9.1l-2.4 9.5'/%3E%3Cpath d='M53.8 86.3l-2.4 9.7'/%3E%3Cpath d='M32.1 66.0l-3.7 14.7'/%3E%3Cpath d='M70.3 42.5l-3.7 14.9'/%3E%3Cpath d='M13.0 89.6l-2.7 10.7'/%3E%3Cpath d='M23.6 14.0l-2.7 10.9'/%3E%3Cpath d='M96.1 20.4l-3.1 12.5'/%3E%3Cpath d='M77.0 40.0l-3.1 12.3'/%3E%3Cpath d='M14.8 8.1l-2.6 10.2'/%3E%3Cpath d='M81.5 45.6l-2.7 10.9'/%3E%3Cpath d='M71.2 48.2l-2.7 10.8'/%3E%3C/g%3E%3C/svg%3E");animation:rain 1.8s linear infinite}
+.hero[data-precip=snow] .precip{opacity:.3;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='%23f2f6ff' fill-opacity='.8'%3E%3Ccircle cx='93.0' cy='82.3' r='1.3'/%3E%3Ccircle cx='68.3' cy='62.8' r='2.0'/%3E%3Ccircle cx='85.7' cy='36.2' r='2.1'/%3E%3Ccircle cx='17.2' cy='50.8' r='1.8'/%3E%3Ccircle cx='21.0' cy='58.8' r='1.0'/%3E%3Ccircle cx='78.8' cy='89.6' r='1.6'/%3E%3Ccircle cx='102.1' cy='39.1' r='1.8'/%3E%3Ccircle cx='70.6' cy='68.9' r='1.5'/%3E%3Ccircle cx='98.1' cy='109.8' r='1.5'/%3E%3Ccircle cx='78.4' cy='10.8' r='1.8'/%3E%3Ccircle cx='76.5' cy='115.2' r='1.9'/%3E%3Ccircle cx='35.9' cy='47.2' r='1.7'/%3E%3Ccircle cx='6.5' cy='55.7' r='1.2'/%3E%3Ccircle cx='17.1' cy='10.6' r='1.8'/%3E%3Ccircle cx='18.5' cy='31.7' r='1.4'/%3E%3Ccircle cx='101.6' cy='13.0' r='1.5'/%3E%3C/g%3E%3C/svg%3E");animation:snow 24s linear infinite}
+.hero[data-precip][data-plevel="2"] .precip{opacity:.42}
+.hero[data-precip][data-plevel="3"] .precip{opacity:.55}
+.hero[data-plevel="0"] .precip{opacity:0;animation-play-state:paused}   /* stopped: fade out, then sit still */
 @keyframes drift{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @keyframes rain{from{transform:translate(0,0)}to{transform:translate(-120px,480px)}}
 @keyframes snow{from{transform:translate(0,0)}to{transform:translate(-120px,480px)}}
@@ -183,7 +187,8 @@ html.night .sky-day{--c:#8C8C8C}html.night .sky-twi{--c:#5C5C5C}html.night .sky-
 
 .hero-main{margin:22px -8px 0;padding:8px;border-radius:14px}
 .hero.changed .hero-main{animation:flash 1.4s ease-out 2}
-.eyebrow{margin:0 0 8px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#D3E1F2}
+.eyebrow{margin:0 0 8px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#fff;
+  text-shadow:0 1px 8px rgba(0,0,0,.5)}
 .eyebrow small{font-size:11px;font-weight:500;letter-spacing:.02em;text-transform:none;color:#C6D5E8}
 h1{margin:0;font-size:clamp(27px,8.4vw,35px);line-height:1.1;font-weight:600;letter-spacing:-.01em;text-wrap:balance;text-shadow:0 2px 14px rgba(0,0,0,.45)}
 .sub{margin:8px 0 0;font-size:14.5px;line-height:1.45;color:#E4EEF9;text-shadow:0 1px 8px rgba(0,0,0,.5);max-width:36ch}
@@ -1261,7 +1266,8 @@ function renderHero(c) {
   hero.dataset.level = v.level;
   const sun = c.dark ? c.dark.alt : null;                         // the sky behind the headline follows the Sun
   hero.dataset.sky = sun == null || sun <= CFG.darkSunAlt ? 'night' : sun <= -6 ? 'nautical' : sun <= -0.8 ? 'civil' : 'day';
-  // ...and shows the weather: cloud, haze or fog, rain or snow (only from a reading under 3 hours old), and the Moon while it's up
+  // ...and shows the weather: cloud (as in the headline and tiles), haze, fog, rain or snow (these only from a reading under
+  // 3 hours old), and the Moon while it's up
   const wx = S.wx && S.wx.cur, wxNow = !!(wx && c.nowMs - wx.t.getTime() < 3 * 3600e3);
   const scene = skyScene({ sky: hero.dataset.sky, cloud: c.cloud, cloudTotal: c.cloudTotal, code: wxNow ? wx.code : null, vis: wxNow ? wx.vis : null,
     moonUp: !!(c.moonEv && c.moonEv.up), moonIllum: c.moon.illum });
@@ -1269,7 +1275,8 @@ function renderHero(c) {
   hero.style.setProperty('--haze', String(scene.haze));
   hero.style.setProperty('--moon', String(scene.moon));
   hero.style.setProperty('--moon-glow', String(Math.round(c.moon.illum * 100) / 100));
-  hero.dataset.precip = scene.precip; hero.dataset.plevel = String(scene.precipLevel);
+  if (scene.precip) hero.dataset.precip = scene.precip;            // keep the last kind, so it fades out when it stops
+  hero.dataset.plevel = String(scene.precipLevel);
   if (scene.moon) {
     const lit = $('banner-moon-lit'), shape = moonPath(c.moon.illum, c.moon.phase < 0.5, !!(c.loc && c.loc.lat < 0));
     if (lit.getAttribute('d') !== shape) lit.setAttribute('d', shape);
