@@ -119,6 +119,28 @@ test('thin high cloud counts for less than low cloud', () => {
   assert.ok(A.thinCloud(52, 88) && !A.thinCloud(80, 88));
 });
 
+test('the banner sky follows the weather', () => {
+  const clear = A.skyScene({ sky: 'night', cloud: 5, cloudTotal: 5, code: 0, vis: 24000, moonUp: false, moonIllum: 0.9 });
+  assert.deepEqual(clear, { cloud: 0.05, haze: 0, precip: '', precipLevel: 0, moon: 0 });
+  assert.equal(A.skyScene({ sky: 'night', cloud: 100, code: 3 }).cloud, 1);
+  const fog = A.skyScene({ sky: 'night', cloud: 100, code: 45, vis: 3000 });
+  assert.ok(fog.haze >= 0.65, 'fog code gives at least a fairly thick haze');
+  const mist = A.skyScene({ sky: 'day', cloud: 20, code: 2, vis: 1000 });
+  assert.ok(mist.haze > 0.3 && mist.haze < 0.6, 'visibility of 1 km is hazy: ' + mist.haze);
+  assert.equal(A.skyScene({ sky: 'day', cloud: 20, vis: 20000 }).haze, 0);
+  assert.ok(A.skyScene({ sky: 'night', cloud: 52, cloudTotal: 88 }).haze > 0.1, 'thin high cloud adds a veil');
+  assert.deepEqual([A.skyScene({ code: 61 }).precip, A.skyScene({ code: 61 }).precipLevel], ['rain', 1]);
+  assert.deepEqual([A.skyScene({ code: 65 }).precip, A.skyScene({ code: 65 }).precipLevel], ['rain', 3]);
+  assert.deepEqual([A.skyScene({ code: 75 }).precip, A.skyScene({ code: 75 }).precipLevel], ['snow', 3]);
+  assert.equal(A.skyScene({ code: 95 }).precip, 'rain');
+  assert.equal(A.skyScene({ code: 3 }).precip, '');
+  // the Moon: shown when it's up and not in daylight, dimmed by cloud, hidden when barely lit
+  assert.equal(A.skyScene({ sky: 'night', cloud: 0, moonUp: true, moonIllum: 0.8 }).moon, 1);
+  assert.ok(A.skyScene({ sky: 'night', cloud: 100, moonUp: true, moonIllum: 0.8 }).moon < 0.2);
+  assert.equal(A.skyScene({ sky: 'day', cloud: 0, moonUp: true, moonIllum: 0.8 }).moon, 0);
+  assert.equal(A.skyScene({ sky: 'night', cloud: 0, moonUp: true, moonIllum: 0.02 }).moon, 0);
+});
+
 test('solar wind early warning', () => {
   const now = ms('2026-10-12T21:30:00Z');
   assert.ok(A.windWatch({ bz: -9, speed: 580, t: now - 5 * 60e3 }, now));

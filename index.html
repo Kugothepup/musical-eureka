@@ -36,7 +36,7 @@
 
 :root{
   --bg:#0C1624; --bg2:#122238;
-  --card:rgba(222,231,242,.09); --card-b:rgba(222,231,242,.10);
+  --card:rgba(222,231,242,.105); --card-b:rgba(222,231,242,.12);
   --text:#E6EEF8; --muted:#A9BCD4; --faint:#8196B1;
   --good:#7AFD89; --warn:#FFB347; --bad:#F56565; --none:#718096; --info:#8DB4FF; --pink:#F190D9;
   --radius:16px;
@@ -46,7 +46,7 @@ html{-webkit-text-size-adjust:100%;background:var(--bg);overscroll-behavior-y:co
 body{
   position:relative;margin:0;color:var(--text);overscroll-behavior-y:contain;
   font-family:'Poppins',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
-  background:linear-gradient(180deg,var(--bg2) 0,var(--bg) 520px) var(--bg);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 -.2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E"),linear-gradient(180deg,var(--bg2) 0,var(--bg) 520px) var(--bg);   /* a faint grain behind the tiles */
   min-height:100vh;min-height:100dvh;-webkit-tap-highlight-color:transparent;
   font-variant-numeric:tabular-nums;
 }
@@ -65,7 +65,7 @@ html.night{background:#000;--text:#F2F2F2;--muted:#C8C8C8;--faint:#ADADAD;--good
   --info:#C4C4C4;--card:rgba(255,255,255,.07);--card-b:rgba(255,255,255,.13)}
 html.night body{background:#000}
 html.night body::after{content:"";position:absolute;inset:0;z-index:9999;pointer-events:none;background:#9c0000;mix-blend-mode:multiply}
-html.night .stars,html.night .curtain{animation:none!important}
+html.night .sky *{animation:none!important}
 html.night .curtain{filter:blur(18px)}
 html.night .t0{--c:#4A4A4A}html.night .t1{--c:#707070}html.night .t2{--c:#9C9C9C}html.night .t3{--c:#D4D4D4}html.night .t4{--c:#FFFFFF}
 html.night .l0{--c:#5A5A5A}html.night .l1{--c:#808080}html.night .l2{--c:#C0C0C0}html.night .l3{--c:#FFFFFF}
@@ -120,6 +120,42 @@ html.night .sky-day{--c:#8C8C8C}html.night .sky-twi{--c:#5C5C5C}html.night .sky-
 .hero[data-sky=civil] .stars{opacity:.2;animation:none}
 .hero[data-sky=nautical] .stars{opacity:.5;animation:none}
 .hero[data-sky=day] .curtain,.hero[data-sky=civil] .curtain{opacity:0}
+
+/* Weather in the sky, from the live readings: --cloud, --haze and --moon (0-1) and data-precip are set by the script.
+   Only transform and opacity animate, so it stays cheap; night mode and reduced motion freeze it all. */
+.hero{--cloud-c:#475670;--haze-rgb:132,145,165}
+.hero[data-sky=nautical]{--cloud-c:#4a5a74}
+.hero[data-sky=civil]{--cloud-c:#7c5f78;--haze-rgb:150,120,140}
+.hero[data-sky=day]{--cloud-c:#63758c;--haze-rgb:118,134,156}
+.banner-moon{position:absolute;right:30px;top:calc(66px + env(safe-area-inset-top));width:24px;height:24px;opacity:var(--moon,0);transition:opacity 1.5s ease;
+  filter:drop-shadow(0 0 calc(3px + var(--moon-glow,0) * 12px) rgba(226,236,250,.6))}
+.banner-moon circle{fill:rgba(170,188,212,.16)}
+.banner-moon path{fill:#EEF3FA}
+.aurora{position:absolute;inset:0}
+.hero[data-level=go] .aurora{animation:breathe 7s ease-in-out infinite alternate}
+.clouds{position:absolute;inset:0;transition:opacity 1.5s ease}
+.overcast{position:absolute;inset:0;background:var(--cloud-c);opacity:calc((var(--cloud,0) - .45) * 1.6);transition:opacity 1.5s ease}
+.bank{position:absolute;left:0;width:200%;opacity:calc(var(--cloud,0) * 1.8);transition:opacity 1.5s ease;will-change:transform;
+  background-size:50% 100%;background-repeat:repeat-x}
+.bank.b1{top:4%;height:52%;animation:drift 150s linear infinite;
+  background-image:radial-gradient(20% 42% at 24% 55%,var(--cloud-c),transparent 72%),radial-gradient(13% 34% at 50% 42%,var(--cloud-c),transparent 72%),
+    radial-gradient(17% 46% at 76% 60%,var(--cloud-c),transparent 72%)}
+.bank.b2{top:34%;height:58%;animation:drift 95s linear infinite;
+  background-image:radial-gradient(16% 40% at 14% 50%,var(--cloud-c),transparent 72%),radial-gradient(22% 46% at 46% 58%,var(--cloud-c),transparent 72%),
+    radial-gradient(12% 32% at 82% 44%,var(--cloud-c),transparent 72%)}
+.haze{position:absolute;inset:0;opacity:var(--haze,0);transition:opacity 1.5s ease;
+  background:linear-gradient(to top,rgba(var(--haze-rgb),.85) 0%,rgba(var(--haze-rgb),.4) 55%,rgba(var(--haze-rgb),.18) 100%)}
+.precip{position:absolute;left:-10%;right:-140px;top:-480px;bottom:0;opacity:0;transition:opacity 1s ease;will-change:transform;background-repeat:repeat}
+.hero[data-precip=rain] .precip{opacity:.5;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg stroke='%23d6e4ff' stroke-opacity='.55' stroke-width='1.2' stroke-linecap='round'%3E%3Cpath d='M43.0 17.4l-3.2 12.9'/%3E%3Cpath d='M15.8 56.7l-2.8 11.2'/%3E%3Cpath d='M14.3 53.8l-2.3 9.2'/%3E%3Cpath d='M54.8 9.1l-2.4 9.5'/%3E%3Cpath d='M53.8 86.3l-2.4 9.7'/%3E%3Cpath d='M32.1 66.0l-3.7 14.7'/%3E%3Cpath d='M70.3 42.5l-3.7 14.9'/%3E%3Cpath d='M13.0 89.6l-2.7 10.7'/%3E%3Cpath d='M23.6 14.0l-2.7 10.9'/%3E%3Cpath d='M96.1 20.4l-3.1 12.5'/%3E%3Cpath d='M77.0 40.0l-3.1 12.3'/%3E%3Cpath d='M14.8 8.1l-2.6 10.2'/%3E%3Cpath d='M81.5 45.6l-2.7 10.9'/%3E%3Cpath d='M71.2 48.2l-2.7 10.8'/%3E%3C/g%3E%3C/svg%3E");animation:rain 2.2s linear infinite}
+.hero[data-precip=snow] .precip{opacity:.6;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='%23f2f6ff' fill-opacity='.8'%3E%3Ccircle cx='93.0' cy='82.3' r='1.3'/%3E%3Ccircle cx='68.3' cy='62.8' r='2.0'/%3E%3Ccircle cx='85.7' cy='36.2' r='2.1'/%3E%3Ccircle cx='17.2' cy='50.8' r='1.8'/%3E%3Ccircle cx='21.0' cy='58.8' r='1.0'/%3E%3Ccircle cx='78.8' cy='89.6' r='1.6'/%3E%3Ccircle cx='102.1' cy='39.1' r='1.8'/%3E%3Ccircle cx='70.6' cy='68.9' r='1.5'/%3E%3Ccircle cx='98.1' cy='109.8' r='1.5'/%3E%3Ccircle cx='78.4' cy='10.8' r='1.8'/%3E%3Ccircle cx='76.5' cy='115.2' r='1.9'/%3E%3Ccircle cx='35.9' cy='47.2' r='1.7'/%3E%3Ccircle cx='6.5' cy='55.7' r='1.2'/%3E%3Ccircle cx='17.1' cy='10.6' r='1.8'/%3E%3Ccircle cx='18.5' cy='31.7' r='1.4'/%3E%3Ccircle cx='101.6' cy='13.0' r='1.5'/%3E%3C/g%3E%3C/svg%3E");animation:snow 30s linear infinite}
+.hero[data-precip][data-plevel="2"] .precip{opacity:.75;animation-duration:1.8s}
+.hero[data-precip][data-plevel="3"] .precip{opacity:.95;animation-duration:1.4s}
+.hero[data-precip=snow][data-plevel="2"] .precip{animation-duration:24s}
+.hero[data-precip=snow][data-plevel="3"] .precip{animation-duration:18s}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes rain{from{transform:translate(0,0)}to{transform:translate(-120px,480px)}}
+@keyframes snow{from{transform:translate(0,0)}to{transform:translate(-120px,480px)}}
+@keyframes breathe{from{opacity:.7}to{opacity:1}}
 .hero::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
   background:linear-gradient(180deg,rgba(6,12,22,0) 0%,rgba(6,12,22,.35) 55%,rgba(6,12,22,.72) 100%)}
 @keyframes sway{from{transform:translateX(-4%) skewX(-5deg) scaleY(.88)}to{transform:translateX(4%) skewX(5deg) scaleY(1.08)}}
@@ -182,7 +218,8 @@ h1{margin:0;font-size:clamp(27px,8.4vw,35px);line-height:1.1;font-weight:600;let
 
 /* ---------- Cards ---------- */
 .cards{max-width:520px;margin:0 auto;padding:14px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.card{background:var(--card);border:1px solid var(--card-b);border-radius:var(--radius);padding:16px;min-width:0}
+.card{background:linear-gradient(var(--card),var(--card)) #101b2b;border:1px solid var(--card-b);border-radius:var(--radius);padding:16px;min-width:0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 24px -14px rgba(0,0,0,.7)}   /* solid underneath so the grain stays outside; a lit top edge and a soft lift */
 .wide{grid-column:1/-1}
 .card h2{margin:0;font-size:12px;font-weight:500;line-height:1.3;letter-spacing:.02em;color:var(--muted)}
 .card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -284,7 +321,7 @@ footer{max-width:520px;margin:0 auto;padding:18px 16px calc(28px + env(safe-area
 footer p{margin:0 0 6px}
 
 @media (prefers-reduced-motion:reduce){
-  .stars,.curtain,.busy #refresh-btn svg,.hero.changed .hero-main{animation:none!important}
+  .sky *,.busy #refresh-btn svg,.hero.changed .hero-main{animation:none!important}
 }
 </style>
 </head>
@@ -295,9 +332,11 @@ footer p{margin:0 0 6px}
 <header class="hero" id="hero" data-level="unknown" data-sky="night">
   <div class="sky" aria-hidden="true">
     <div class="stars"></div>
-    <div class="curtain a"></div>
-    <div class="curtain b"></div>
-    <div class="curtain c"></div>
+    <svg class="banner-moon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path id="banner-moon-lit" d=""/></svg>
+    <div class="aurora"><div class="curtain a"></div><div class="curtain b"></div><div class="curtain c"></div></div>
+    <div class="clouds"><div class="overcast"></div><div class="bank b1"></div><div class="bank b2"></div></div>
+    <div class="haze"></div>
+    <div class="precip"></div>
   </div>
   <div class="hero-inner">
     <div class="hero-bar">
@@ -713,6 +752,7 @@ function normaliseWeather(j) {
   return {
     tz: j.timezone || null, offset: off,
     cur: { t: omDate(c.time, off), temp: c.temperature_2m, feels: c.apparent_temperature, code: c.weather_code,
+           vis: c.visibility == null ? null : c.visibility,
            cloud: effectiveCloud(c.cloud_cover, c.cloud_cover_low, c.cloud_cover_mid, c.cloud_cover_high),
            cloudTotal: c.cloud_cover == null ? null : c.cloud_cover },
     hourly: { time, pop: h.precipitation_probability || [], cloudTotal: h.cloud_cover || [],
@@ -750,6 +790,26 @@ function windWatch(w, nowMs) {                                    // southward B
   if (!w || w.bz == null || w.bz > ww.bz) return false;
   if (w.t && nowMs - w.t > ww.maxAgeMin * 60e3) return false;
   return (w.speed != null && w.speed >= ww.speed) || w.bz <= ww.strongBz;
+}
+
+/* ----- what the sky behind the headline shows: cloud, haze or fog, rain or snow, and the Moon ----- */
+const WX_PRECIP = {                          // WMO weather code -> [kind, 1 light | 2 moderate | 3 heavy]
+  51: ['rain', 1], 53: ['rain', 1], 55: ['rain', 2], 56: ['rain', 1], 57: ['rain', 2], 61: ['rain', 1], 63: ['rain', 2], 65: ['rain', 3],
+  66: ['rain', 1], 67: ['rain', 2], 71: ['snow', 1], 73: ['snow', 2], 75: ['snow', 3], 77: ['snow', 1], 80: ['rain', 1], 81: ['rain', 2],
+  82: ['rain', 3], 85: ['snow', 1], 86: ['snow', 3], 95: ['rain', 2], 96: ['rain', 3], 99: ['rain', 3]
+};
+function skyScene(o) {                       // o: sky, cloud & cloudTotal (%), code (WMO), vis (m), moonUp, moonIllum
+  const r2 = x => Math.round(x * 100) / 100;
+  const cloud = o.cloud == null ? 0 : Math.max(0, Math.min(1, o.cloud / 100));
+  // Haze from visibility (none above 8 km, thickest by 200 m), at least fairly thick in fog, and a light veil of thin high cloud.
+  let haze = 0;
+  if (o.vis != null && o.vis < 8000) haze = 0.8 * Math.log(8000 / Math.max(o.vis, 200)) / Math.log(8000 / 200);
+  if (o.code === 45 || o.code === 48) haze = Math.max(haze, 0.65);
+  if (o.cloud != null && o.cloudTotal != null) haze = Math.max(haze, Math.max(0, o.cloudTotal - o.cloud) / 100 * 0.45);
+  const p = WX_PRECIP[o.code] || null;
+  const moonShown = !!o.moonUp && o.sky !== 'day' && (o.moonIllum || 0) >= 0.05;
+  return { cloud: r2(cloud), haze: r2(haze), precip: p ? p[0] : '', precipLevel: p ? p[1] : 0,
+           moon: moonShown ? r2(1 - cloud * 0.85) : 0 };       // cloud hides the Moon too
 }
 
 /* ----- tonight: score each hour from activity x darkness x clear sky x moonlight ----- */
@@ -1018,7 +1078,7 @@ async function loadWeather() {
   try {
     const p = new URLSearchParams({
       latitude: S.loc.lat, longitude: S.loc.lon, timezone: 'auto', timeformat: 'unixtime', forecast_hours: 24,
-      current: 'temperature_2m,apparent_temperature,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,weather_code',
+      current: 'temperature_2m,apparent_temperature,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,weather_code,visibility',
       hourly: 'cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation_probability'
     });
     const j = await getJSON(URLS.weather + '?' + p);
@@ -1201,6 +1261,19 @@ function renderHero(c) {
   hero.dataset.level = v.level;
   const sun = c.dark ? c.dark.alt : null;                         // the sky behind the headline follows the Sun
   hero.dataset.sky = sun == null || sun <= CFG.darkSunAlt ? 'night' : sun <= -6 ? 'nautical' : sun <= -0.8 ? 'civil' : 'day';
+  // ...and shows the weather: cloud, haze or fog, rain or snow (only from a reading under 3 hours old), and the Moon while it's up
+  const wx = S.wx && S.wx.cur, wxNow = !!(wx && c.nowMs - wx.t.getTime() < 3 * 3600e3);
+  const scene = skyScene({ sky: hero.dataset.sky, cloud: c.cloud, cloudTotal: c.cloudTotal, code: wxNow ? wx.code : null, vis: wxNow ? wx.vis : null,
+    moonUp: !!(c.moonEv && c.moonEv.up), moonIllum: c.moon.illum });
+  hero.style.setProperty('--cloud', String(scene.cloud));
+  hero.style.setProperty('--haze', String(scene.haze));
+  hero.style.setProperty('--moon', String(scene.moon));
+  hero.style.setProperty('--moon-glow', String(Math.round(c.moon.illum * 100) / 100));
+  hero.dataset.precip = scene.precip; hero.dataset.plevel = String(scene.precipLevel);
+  if (scene.moon) {
+    const lit = $('banner-moon-lit'), shape = moonPath(c.moon.illum, c.moon.phase < 0.5, !!(c.loc && c.loc.lat < 0));
+    if (lit.getAttribute('d') !== shape) lit.setAttribute('d', shape);
+  }
   setText('hero-title', v.title);
   setText('hero-sub', v.sub);
   setText('hero-eyebrow', ({ go: 'Go now', maybe: 'Maybe', wait: 'Not yet', no: 'Unlikely', unknown: 'Aurora outlook' })[v.level]);
